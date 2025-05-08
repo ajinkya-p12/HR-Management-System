@@ -1,0 +1,85 @@
+mysql> use hospital_hrms;
+Database changed
+
+mysql> show tables;
++-------------------------+
+| Tables_in_hospital_hrms |
++-------------------------+
+| attendance              |
+| employees               |
+| leave_requests          |
+| payroll                 |
+| users                   |
++-------------------------+
+5 rows in set (0.018 sec)
+
+mysql> desc attendance;
++-------------+-------------+------+-----+---------+----------------+
+| Field       | Type        | Null | Key | Default | Extra          |
++-------------+-------------+------+-----+---------+----------------+
+| id          | int         | NO   | PRI | NULL    | auto_increment |
+| employee_id | int         | NO   | MUL | NULL    |                |
+| check_in    | datetime    | YES  |     | NULL    |                |
+| check_out   | datetime    | YES  |     | NULL    |                |
+| status      | varchar(20) | YES  |     | present |                |
++-------------+-------------+------+-----+---------+----------------+
+5 rows in set (0.015 sec)
+
+mysql> desc employees;
++------------+---------------+------+-----+---------+----------------+
+| Field      | Type          | Null | Key | Default | Extra          |
++------------+---------------+------+-----+---------+----------------+
+| id         | int           | NO   | PRI | NULL    | auto_increment |
+| name       | varchar(100)  | NO   |     | NULL    |                |
+| position   | varchar(100)  | NO   |     | NULL    |                |
+| department | varchar(100)  | NO   |     | NULL    |                |
+| salary     | decimal(10,2) | NO   |     | NULL    |                |
++------------+---------------+------+-----+---------+----------------+
+5 rows in set (0.016 sec)
+
+mysql> desc leave_requests;
++-------------+-------------+------+-----+-------------------+-------------------+
+| Field       | Type        | Null | Key | Default           | Extra             |
++-------------+-------------+------+-----+-------------------+-------------------+
+| id          | int         | NO   | PRI | NULL              | auto_increment    |
+| employee_id | int         | NO   | MUL | NULL              |                   |
+| start_date  | date        | NO   |     | NULL              |                   |
+| end_date    | date        | NO   |     | NULL              |                   |
+| leave_type  | varchar(50) | NO   |     | NULL              |                   |
+| reason      | text        | YES  |     | NULL              |                   |
+| status      | varchar(20) | YES  |     | pending           |                   |
+| created_at  | timestamp   | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++-------------+-------------+------+-----+-------------------+-------------------+
+8 rows in set (0.017 sec)
+
+mysql> desc payroll;
++----------------+---------------+------+-----+-------------------+-------------------+
+| Field          | Type          | Null | Key | Default           | Extra             |
++----------------+---------------+------+-----+-------------------+-------------------+
+| id             | int           | NO   | PRI | NULL              | auto_increment    |
+| employee_id    | int           | NO   | MUL | NULL              |                   |
+| basic_salary   | decimal(10,2) | NO   |     | NULL              |                   |
+| allowances     | decimal(10,2) | YES  |     | 0.00              |                   |
+| deductions     | decimal(10,2) | YES  |     | 0.00              |                   |
+| net_salary     | decimal(10,2) | NO   |     | NULL              |                   |
+| payment_date   | date          | NO   |     | NULL              |                   |
+| payment_status | varchar(20)   | YES  |     | pending           |                   |
+| month          | varchar(7)    | NO   |     | NULL              |                   |
+| created_at     | timestamp     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++----------------+---------------+------+-----+-------------------+-------------------+
+10 rows in set (0.017 sec)
+
+mysql> desc users;
++------------+--------------+------+-----+-------------------+-------------------+
+| Field      | Type         | Null | Key | Default           | Extra             |
++------------+--------------+------+-----+-------------------+-------------------+
+| id         | int          | NO   | PRI | NULL              | auto_increment    |
+| username   | varchar(100) | NO   | UNI | NULL              |                   |
+| password   | varchar(255) | NO   |     | NULL              |                   |
+| email      | varchar(100) | NO   | UNI | NULL              |                   |
+| role       | varchar(20)  | NO   |     | user              |                   |
+| last_login | datetime     | YES  |     | NULL              |                   |
+| is_active  | tinyint(1)   | YES  |     | 1                 |                   |
+| created_at | timestamp    | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++------------+--------------+------+-----+-------------------+-------------------+
+8 rows in set (0.018 sec)
