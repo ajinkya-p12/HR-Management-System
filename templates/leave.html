@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Management - Hospital HRMS</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-links {
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #3498db;
+            padding: 8px 15px;
+            background-color: #f8f9f9;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .leave-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .change-psw-btn{
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #4D779C;
+            color: white;text-decoration: none;
+            border-radius: 4px;margin-left: 20px;
+        }
+        .logout-btn {
+            padding: 8px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-left: 20px;
+        }
+        .status-pending {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .status-approved {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .status-rejected {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-approve {
+            background-color: #27ae60;
+        }
+        .btn-reject {
+            background-color: #c0392b;
+        }
+        .btn-submit {
+            background-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>Leave Management</h1>
+        <div class="user-info">
+            <span>Welcome, {{ username }}!</span>
+            <a href="/change_password" class="change-psw-btn">Change Password</a>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav-links">
+        <a href="/employees_page">Employees</a>
+        <a href="/attendance_page">Attendance</a>
+        <a href="/leave_page">Leave Management</a>
+        <a href="/payroll_page">Payroll</a>
+        {% if role == 'admin' %}
+        <a href="/manage_users">Manage Users</a>
+        {% endif %}
+    </div>
+
+    <!-- Leave Request Form -->
+    <div class="leave-form">
+        <h2>Submit Leave Request</h2>
+        <form id="leave-form">
+            {% if role != 'admin' %}
+            <input type="hidden" id="employee-id" value="{{ employee_id }}">
+            {% else %}
+            <div class="form-group">
+                <label for="employee-select">Employee:</label>
+                <select id="employee-select" required>
+                    <option value="">Select Employee</option>
+                </select>
+            </div>
+            {% endif %}
+            <div class="form-group">
+                <label for="leave-type">Leave Type:</label>
+                <select id="leave-type" required>
+                    <option value="annual">Annual Leave</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="personal">Personal Leave</option>
+                    <option value="emergency">Emergency Leave</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" required>
+            </div>
+            <div class="form-group">
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" required>
+            </div>
+            <div class="form-group">
+                <label for="reason">Reason:</label>
+                <textarea id="reason" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-submit">Submit Leave Request</button>
+        </form>
+    </div>
+
+    <!-- Leave Requests Table -->
+    <h2>Leave Requests</h2>
+    <table id="leave-table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Leave Type</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                {% if role == 'admin' %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Leave requests will be populated here -->
+        </tbody>
+    </table>
+
+    <script>
+        // Global variables
+        const isAdmin = {{ 'true' if role == 'admin' else 'false' }};
+        let employees = [];
+
+        // Fetch employees for the dropdown if admin
+        if (isAdmin) {
+            fetch('/employees')
+                .then(response => response.json())
+                .then(data => {
+                    employees = data;
+                    const select = document.getElementById('employee-select');
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = emp.name;
+                        select.appendChild(option);
+                    });
+                });
+        }
+
+        // Fetch and display leave requests
+        function fetchLeaveRequests() {
+            fetch('/leave/requests')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('leave-table').getElementsByTagName('tbody')[0];
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(leave => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${leave.employee_name}</td>
+                            <td>${leave.leave_type}</td>
+                            <td>${leave.start_date}</td>
+                            <td>${leave.end_date}</td>
+                            <td>${leave.reason}</td>
+                            <td class="status-${leave.status}">${leave.status}</td>
+                            ${isAdmin && leave.status === 'pending' ? `
+                            <td>
+                                <button class="btn btn-approve" onclick="updateLeaveStatus(${leave.id}, 'approved')">
+                                    Approve
+                                </button>
+                                <button class="btn btn-reject" onclick="updateLeaveStatus(${leave.id}, 'rejected')">
+                                    Reject
+                                </button>
+                            </td>` : isAdmin ? '<td>-</td>' : ''}
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        // Submit leave request
+        document.getElementById('leave-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = {
+                employee_id: isAdmin ? document.getElementById('employee-select').value 
+                                   : document.getElementById('employee-id').value,
+                leave_type: document.getElementById('leave-type').value,
+                start_date: document.getElementById('start-date').value,
+                end_date: document.getElementById('end-date').value,
+                reason: document.getElementById('reason').value
+            };
+
+            fetch('/leave/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                this.reset();
+                fetchLeaveRequests();
+            });
+        });
+
+        // Update leave status (for admin)
+        function updateLeaveStatus(leaveId, status) {
+            fetch(`/leave/update/${leaveId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchLeaveRequests();
+            });
+        }
+
+        // Initial fetch
+        fetchLeaveRequests();
+    </script>
+</body>
+</html>

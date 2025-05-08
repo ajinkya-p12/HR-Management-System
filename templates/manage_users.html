@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users - Hospital HRMS</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-add {
+            background-color: #27ae60;
+        }
+        .btn-toggle {
+            background-color: #e74c3c;
+        }
+        .form-container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .active {
+            color: #27ae60;
+        }
+        .inactive {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>Manage Users</h1>
+        <div>
+            <a href="/employees_page" class="btn" style="background-color: #3498db;">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h2>Add New User</h2>
+        <form id="add-user-form">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="form-group">
+                <label for="role">Role:</label>
+                <select id="role" required>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-add">Add User</button>
+        </form>
+    </div>
+
+    <h2>User List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Last Login</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user[1] }}</td>
+                <td>{{ user[2] }}</td>
+                <td>{{ user[3] }}</td>
+                <td>{{ user[4].strftime('%Y-%m-%d %H:%M:%S') if user[4] else 'Never' }}</td>
+                <td class="{{ 'active' if user[5] else 'inactive' }}">
+                    {{ 'Active' if user[5] else 'Inactive' }}
+                </td>
+                <td>
+                    <button class="btn btn-toggle" onclick="toggleUser({{ user[0] }})">
+                        {{ 'Deactivate' if user[5] else 'Activate' }}
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Add user form handler
+        document.getElementById('add-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            };
+
+            fetch('/add_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (!data.error) {
+                    window.location.reload();
+                }
+            });
+        });
+
+        // Toggle user status
+        function toggleUser(userId) {
+            fetch(`/toggle_user/${userId}`, {
+                method: 'PUT'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                window.location.reload();
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hospital Employees</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+        }
+        h1 { 
+            color: #2c3e50; 
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 80%; 
+            margin-top: 20px; 
+        }
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 8px 12px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #f4f4f4; 
+        }
+        tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        .edit-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+        .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        input {
+            padding: 5px;
+            margin: 5px;
+        }
+        #add-employee-form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .search-filter {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        select, input[type="text"] {
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+        label {
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        .stats {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+        }
+        .stat-box h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .change-psw-btn{
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #4D779C;
+            color: white;text-decoration: none;
+            border-radius: 4px;margin-left: 20px;
+        }
+        .logout-btn {
+            padding: 8px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-left: 20px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .nav-links {
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #3498db;
+            padding: 8px 15px;
+            margin-right: 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .nav-links a:hover {
+            background-color: #e9ecef;
+        }
+        .active-nav {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>Hospital Employees</h1>
+        <div class="user-info">
+            <span>Welcome, {{ username }}!</span>
+            <a href="/change_password" class="change-psw-btn">Change Password</a>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav-links">
+        <a href="/employees_page">Employees</a>
+        <a href="/attendance_page">Attendance</a>
+        <a href="/leave_page">Leave Management</a>
+        <a href="/payroll_page">Payroll</a>
+        {% if role == 'admin' %}
+        <a href="/manage_users">Manage Users</a>
+        {% endif %}
+    </div>
+    
+    <!-- Search and Filter Section -->
+    <div class="search-filter">
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div>
+                <label for="searchName">Search by Name:</label>
+                <input type="text" id="searchName" placeholder="Enter name...">
+            </div>
+            <div>
+                <label for="filterDepartment">Filter by Department:</label>
+                <select id="filterDepartment">
+                    <option value="">All Departments</option>
+                </select>
+            </div>
+            <button onclick="resetFilters()" style="background-color: #6c757d; color: white;">Reset Filters</button>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats">
+        <div class="stat-box">
+            <h3>Total Employees</h3>
+            <p id="totalEmployees">0</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Departments</h3>
+            <p id="totalDepartments">0</p>
+        </div>
+        <div class="stat-box">
+            <h3>Average Salary</h3>
+            <p id="averageSalary">$0</p>
+        </div>
+    </div>
+
+    {% if role == 'admin' %}
+    <!-- Add Employee Form -->
+    <h2>Add New Employee</h2>
+    <form id="add-employee-form">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="text" id="position" placeholder="Position" required>
+        <input type="text" id="department" placeholder="Department" required>
+        <input type="number" id="salary" placeholder="Salary" required>
+        <button type="submit">Add Employee</button>
+    </form>
+    <p id="form-message" style="color: green;"></p>
+    {% endif %}
+
+    <!-- Employee Table -->
+    <table id="employees-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Department</th>
+                <th>Salary</th>
+                {% if role == 'admin' %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Employee rows will go here -->
+        </tbody>
+    </table>
+
+    <!-- Edit Modal -->
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);">
+        <div style="background: white; padding: 20px; width: 50%; margin: 100px auto; border-radius: 5px;">
+            <h2>Edit Employee</h2>
+            <form id="edit-employee-form">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label>Name:</label>
+                    <input type="text" id="edit-name" required>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>Position:</label>
+                    <input type="text" id="edit-position" required>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>Department:</label>
+                    <input type="text" id="edit-department" required>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>Salary:</label>
+                    <input type="number" id="edit-salary" required>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const isAdmin = {{ 'true' if role == 'admin' else 'false' }};
+        let allEmployees = [];
+
+        function handleResponse(response) {
+            if (response.status === 403) {
+                alert('You are not authorized to perform this action');
+                return null;
+            }
+            return response.json();
+        }
+
+        // Fetch and display employees
+        fetch('/employees')
+            .then(response => response.json())
+            .then(data => {
+                allEmployees = data;
+                displayEmployees(data);
+                updateDepartmentFilter(data);
+                updateStatistics(data);
+            });
+
+        // Function to display employees
+        function displayEmployees(employees) {
+            const tbody = document.querySelector('#employees-table tbody');
+            tbody.innerHTML = '';
+            
+            employees.forEach(emp => {
+                const row = document.createElement('tr');
+                let html = `
+                    <td>${emp.id}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.position}</td>
+                    <td>${emp.department}</td>
+                    <td>$${emp.salary.toLocaleString()}</td>
+                `;
+                
+                if (isAdmin) {
+                    html += `
+                        <td>
+                            <button class="edit-btn" onclick='openEditModal(${JSON.stringify(emp)})'>Edit</button>
+                            <button class="delete-btn" onclick="deleteEmployee(${emp.id})">Delete</button>
+                        </td>
+                    `;
+                }
+                
+                row.innerHTML = html;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Function to update department filter options
+        function updateDepartmentFilter(employees) {
+            const departments = [...new Set(employees.map(emp => emp.department))];
+            const filterSelect = document.getElementById('filterDepartment');
+            
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // Function to update statistics
+        function updateStatistics(employees) {
+            const totalEmployees = employees.length;
+            const departments = [...new Set(employees.map(emp => emp.department))];
+            const averageSalary = employees.reduce((sum, emp) => sum + parseFloat(emp.salary), 0) / totalEmployees;
+
+            document.getElementById('totalEmployees').textContent = totalEmployees;
+            document.getElementById('totalDepartments').textContent = departments.length;
+            document.getElementById('averageSalary').textContent = '$' + averageSalary.toFixed(2);
+        }
+
+        // Function to filter employees
+        function filterEmployees() {
+            const searchTerm = document.getElementById('searchName').value.toLowerCase();
+            const department = document.getElementById('filterDepartment').value;
+            
+            const filteredEmployees = allEmployees.filter(emp => {
+                const nameMatch = emp.name.toLowerCase().includes(searchTerm);
+                const departmentMatch = department === '' || emp.department === department;
+                return nameMatch && departmentMatch;
+            });
+            
+            displayEmployees(filteredEmployees);
+            updateStatistics(filteredEmployees);
+        }
+
+        // Function to reset filters
+        function resetFilters() {
+            document.getElementById('searchName').value = '';
+            document.getElementById('filterDepartment').value = '';
+            displayEmployees(allEmployees);
+            updateStatistics(allEmployees);
+        }
+
+        if (isAdmin) {
+            // Add employee form handler
+            document.getElementById('add-employee-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('name').value;
+                const position = document.getElementById('position').value;
+                const department = document.getElementById('department').value;
+                const salary = document.getElementById('salary').value;
+
+                fetch('/add_employee', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, position, department, salary })
+                })
+                .then(handleResponse)
+                .then(data => {
+                    if (data) {
+                        document.getElementById('form-message').textContent = data.message;
+                        setTimeout(() => { window.location.reload(); }, 1000);
+                    }
+                });
+            });
+
+            // Delete employee function
+            function deleteEmployee(empId) {
+                if (confirm('Are you sure you want to delete this employee?')) {
+                    fetch('/delete_employee/' + empId, { method: 'DELETE' })
+                        .then(handleResponse)
+                        .then(data => {
+                            if (data) {
+                                alert(data.message);
+                                window.location.reload();
+                            }
+                        });
+                }
+            }
+
+            // Edit modal functions
+            function openEditModal(emp) {
+                document.getElementById('edit-id').value = emp.id;
+                document.getElementById('edit-name').value = emp.name;
+                document.getElementById('edit-position').value = emp.position;
+                document.getElementById('edit-department').value = emp.department;
+                document.getElementById('edit-salary').value = emp.salary;
+                document.getElementById('editModal').style.display = 'block';
+            }
+
+            function closeEditModal() {
+                document.getElementById('editModal').style.display = 'none';
+            }
+
+            // Edit form submission handler
+            document.getElementById('edit-employee-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const id = document.getElementById('edit-id').value;
+                const data = {
+                    name: document.getElementById('edit-name').value,
+                    position: document.getElementById('edit-position').value,
+                    department: document.getElementById('edit-department').value,
+                    salary: document.getElementById('edit-salary').value
+                };
+
+                fetch('/edit_employee/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(handleResponse)
+                .then(data => {
+                    if (data) {
+                        alert(data.message);
+                        closeEditModal();
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // Add event listeners for search and filter
+        document.getElementById('searchName').addEventListener('input', filterEmployees);
+        document.getElementById('filterDepartment').addEventListener('change', filterEmployees);
+    </script>
+</body>
+</html>

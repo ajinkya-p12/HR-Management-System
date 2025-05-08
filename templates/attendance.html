@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Management - Hospital HRMS</title>
+    <style>
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-links {
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            margin-right: 20px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .attendance-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .change-psw-btn{
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #4D779C;
+            color: white;text-decoration: none;
+            border-radius: 4px;margin-left: 20px;
+        }
+        .logout-btn {
+            padding: 8px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-left: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .present { color: green; }
+        .absent { color: red; }
+        .late { color: orange; }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-check-in {
+            background-color: #2ecc71;
+        }
+        .btn-check-out {
+            background-color: #e74c3c;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        .status-present {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-absent {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-late {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>Attendance Management</h1>
+        <div class="user-info">
+            <span>Welcome, {{ username }}!</span>
+            <a href="/change_password" class="change-psw-btn">Change Password</a>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav-links">
+        <a href="/employees_page">Employees</a>
+        <a href="/attendance_page">Attendance</a>
+        <a href="/leave_page">Leave Management</a>
+        <a href="/payroll_page">Payroll</a>
+        {% if role == 'admin' %}
+        <a href="/manage_users">Manage Users</a>
+        {% endif %}
+    </div>
+
+    {% if role == 'admin' %}
+    <div class="attendance-form">
+        <h2>Mark Attendance</h2>
+        <form id="attendance-form">
+            <select id="employee-select" required>
+                <option value="">Select Employee</option>
+            </select>
+            <select id="status-select" required>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="late">Late</option>
+            </select>
+            <button type="submit" class="btn btn-check-in">Mark Attendance</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div>
+        <h2>Today's Attendance</h2>
+        <table id="attendance-table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Status</th>
+                    {% if role == 'admin' %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Attendance data will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Global variables
+        let employees = [];
+        const isAdmin = {{ 'true' if role == 'admin' else 'false' }};
+
+        // Fetch employees for the dropdown
+        fetch('/employees')
+            .then(response => response.json())
+            .then(data => {
+                employees = data;
+                if (isAdmin) {
+                    const select = document.getElementById('employee-select');
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = emp.name;
+                        select.appendChild(option);
+                    });
+                }
+                fetchAttendance();
+            });
+
+        // Fetch today's attendance
+        function fetchAttendance() {
+            fetch('/attendance/today')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('attendance-table').getElementsByTagName('tbody')[0];
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(record => {
+                        const row = document.createElement('tr');
+                        const checkIn = record.check_in ? new Date(record.check_in).toLocaleTimeString() : '-';
+                        const checkOut = record.check_out ? new Date(record.check_out).toLocaleTimeString() : '-';
+                        
+                        row.innerHTML = `
+                            <td>${record.employee_name}</td>
+                            <td>${checkIn}</td>
+                            <td>${checkOut}</td>
+                            <td><span class="status-badge status-${record.status}">${record.status}</span></td>
+                            ${isAdmin ? `
+                            <td>
+                                ${!record.check_out ? `
+                                <button class="btn btn-check-out" onclick="markCheckOut(${record.id})">
+                                    Mark Check Out
+                                </button>` : ''}
+                            </td>` : ''}
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        if (isAdmin) {
+            // Handle attendance form submission
+            document.getElementById('attendance-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const employeeId = document.getElementById('employee-select').value;
+                const status = document.getElementById('status-select').value;
+
+                fetch('/attendance/mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employee_id: employeeId, status: status })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchAttendance();
+                });
+            });
+
+            // Handle check out
+            function markCheckOut(attendanceId) {
+                fetch(`/attendance/checkout/${attendanceId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchAttendance();
+                });
+            }
+        }
+    </script>
+</body>
+</html>

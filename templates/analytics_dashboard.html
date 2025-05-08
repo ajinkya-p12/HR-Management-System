@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Analytics Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-left: 4px solid #007bff;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .recent-hires-table {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid py-4">
+        <h2 class="mb-4">HR Analytics Dashboard</h2>
+        
+        <!-- Key Metrics -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <div class="stat-value">{{ total_employees }}</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <div class="stat-value" id="attendance-rate">-</div>
+                    <div class="stat-label">Current Month Attendance Rate</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <div class="stat-value" id="total-departments">-</div>
+                    <div class="stat-label">Total Departments</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="dashboard-card stat-card">
+                    <div class="stat-value" id="active-leaves">-</div>
+                    <div class="stat-label">Active Leave Requests</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="dashboard-card">
+                    <h5>Department Distribution</h5>
+                    <div class="chart-container">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="dashboard-card">
+                    <h5>Attendance Trends</h5>
+                    <div class="chart-container">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Hires -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="dashboard-card">
+                    <h5>Recent Hires</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Hire Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hire in recent_hires %}
+                                <tr>
+                                    <td>{{ hire.name }}</td>
+                                    <td>{{ hire.department }}</td>
+                                    <td>{{ hire.hire_date.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Department Distribution Chart
+        const deptData = {{ dept_distribution|tojson }};
+        const deptCtx = document.getElementById('deptChart').getContext('2d');
+        new Chart(deptCtx, {
+            type: 'pie',
+            data: {
+                labels: deptData.map(d => d.department),
+                datasets: [{
+                    data: deptData.map(d => d.count),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Attendance Trends Chart
+        const attendanceData = {{ attendance_stats|tojson }};
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(attendanceCtx, {
+            type: 'line',
+            data: {
+                labels: attendanceData.map(d => d.month),
+                datasets: [{
+                    label: 'Attendance Rate (%)',
+                    data: attendanceData.map(d => (d.present_count / d.total_attendance * 100).toFixed(2)),
+                    borderColor: '#36A2EB',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // Update Statistics
+        document.getElementById('total-departments').textContent = deptData.length;
+        
+        // Calculate current month attendance rate
+        const currentMonth = attendanceData[0];
+        if (currentMonth) {
+            const rate = ((currentMonth.present_count / currentMonth.total_attendance) * 100).toFixed(1);
+            document.getElementById('attendance-rate').textContent = rate + '%';
+        }
+
+        // Calculate active leaves
+        const leaveStats = {{ leave_stats|tojson }};
+        const totalLeaves = leaveStats.reduce((sum, stat) => sum + stat.count, 0);
+        document.getElementById('active-leaves').textContent = totalLeaves;
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html> 
