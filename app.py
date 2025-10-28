@@ -7,12 +7,12 @@ import re
 import MySQLdb
 
 app = Flask(__name__)
-app.secret_key = '1234'  # Change this to a secure secret key
+app.secret_key = '1234'  
 
 # MySQL configurations
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'tiger'  # Replace with your MySQL password
+app.config['MYSQL_PASSWORD'] = 'tiger'  
 app.config['MYSQL_DB'] = 'hospital_hrms'
 
 mysql = MySQL(app)
@@ -52,7 +52,7 @@ def login():
         cur.execute("SELECT * FROM users WHERE username = %s AND is_active = true", (username,))
         user = cur.fetchone()
         
-        if user and user[2] == password:  # In production, use check_password_hash
+        if user and user[2] == password:  # use check_password_hash
             session['logged_in'] = True
             session['username'] = username
             session['user_id'] = user[0]
